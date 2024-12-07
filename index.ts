@@ -1,7 +1,9 @@
 import definePlugin from '@utils/types';
 
+let bnumber;
+
 export default definePlugin({
-    name: '25mb',
+    name: 'OldLimit',
     description: 'Returns the old limit of 25 megabytes (until fixed)',
     authors: [{ name: '_.0leg._', id: 649957410697510912n }],
     patches: [
@@ -20,12 +22,26 @@ export default definePlugin({
             }
         },
         {
-            find: 'in this.header)', //removes client_build_number from X-Super-Properties
+            find: 'environment:w', //saves build_number (just in case)
+            replacement: {
+                match: /build_number:"(\d+)"/,
+                replace: m => {
+                    bnumber = m.match(/build_number:"(\d+)"/)?.[1];
+                    return m;
+                }
+            }
+        },
+        {
+            find: 'in this.header)', //removes client_build_number from X-Super-Properties if you send an attachment
             replacement: {
                 match: /for\(let \i in this.header\)/,
-                replace: 'if(this.header["X-Super-Properties"]){const xsuper = JSON.parse(atob(this.header["X-Super-Properties"])); delete xsuper.client_build_number; this.header["X-Super-Properties"]=btoa(JSON.stringify(xsuper))};$&'
+                replace: 'if(this.header["X-Super-Properties"]){const xsuper = JSON.parse(atob(this.header["X-Super-Properties"])); if(this?._data?.attachments){delete xsuper.client_build_number}else{xsuper.client_build_number=$self.client_build_number()}; this.header["X-Super-Properties"]=btoa(JSON.stringify(xsuper))};$&'
             }
         }
     ],
+
+    client_build_number() {
+        return parseInt(bnumber);
+    }
 
 })
